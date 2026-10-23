@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FusOpt — Fusion Lobby Optimizer for BONELAB</title>
+  <meta name="description" content="Open-source MelonLoader mod that restores FPS in crowded BONELAB Fusion lobbies. BoneMenu controls, saved settings, host cleanup tools." />
+  <meta property="og:title" content="FusOpt" />
+  <meta property="og:description" content="Open-source Fusion lobby optimizer for BONELAB." />
+  <meta property="og:image" content="assets/hero.jpg" />
+  <link rel="icon" type="image/png" href="assets/icon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=Sora:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="noise" aria-hidden="true"></div>
+
+  <header class="top">
+    <a class="brand" href="#top" data-i18n="brand">FusOpt</a>
+    <nav class="nav">
+      <a href="#features" data-i18n="nav.features">Features</a>
+      <a href="#presets" data-i18n="nav.presets">Presets</a>
+      <a href="#install" data-i18n="nav.install">Install</a>
+      <a href="https://github.com/ZVatnikV/FusOpt" target="_blank" rel="noreferrer">GitHub</a>
+    </nav>
+    <div class="lang" role="group" aria-label="Language">
+      <button type="button" data-lang="en" class="active">EN</button>
+      <button type="button" data-lang="ru">RU</button>
+    </div>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <div class="hero-media" aria-hidden="true">
+        <img src="assets/hero.jpg" alt="" />
+        <div class="hero-shade"></div>
+      </div>
+      <div class="hero-copy">
+        <p class="eyebrow" data-i18n="hero.eyebrow">Open source · BONELAB · Fusion</p>
+        <h1 data-i18n="hero.title">FusOpt</h1>
+        <p class="lede" data-i18n="hero.lede">Keep crowded Fusion lobbies playable. Cull distant props, sleep physics, adapt quality — all from BoneMenu with settings that stick.</p>
+        <div class="cta">
+          <a class="btn primary" href="https://github.com/ZVatnikV/FusOpt/releases" data-i18n="hero.ctaPrimary">Get the mod</a>
+          <a class="btn ghost" href="https://github.com/ZVatnikV/FusOpt" data-i18n="hero.ctaSecondary">View source</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="metrics" aria-label="Highlights">
+      <article>
+        <strong class="count" data-count="20">0</strong>
+        <span data-i18n="metrics.players">player lobbies targeted</span>
+      </article>
+      <article>
+        <strong class="count" data-count="4">0</strong>
+        <span data-i18n="metrics.presets">ready presets</span>
+      </article>
+      <article>
+        <strong class="count" data-count="100">0</strong><span class="suffix">%</span>
+        <span data-i18n="metrics.open">open source MIT</span>
+      </article>
+    </section>
+
+    <section id="features" class="features">
+      <header class="section-head">
+        <h2 data-i18n="features.title">Built for chaos lobbies</h2>
+        <p data-i18n="features.sub">Client relief first. Host cleanup when you run the server.</p>
+      </header>
+      <div class="feature-grid">
+        <article class="feature" data-tilt>
+          <h3 data-i18n="features.prop.title">Prop culling</h3>
+          <p data-i18n="features.prop.body">Distant clutter renderers turn off locally so your GPU stops drawing junk across the map.</p>
+        </article>
+        <article class="feature" data-tilt>
+          <h3 data-i18n="features.phys.title">Physics sleep</h3>
+          <p data-i18n="features.phys.body">Far rigidbodies sleep instead of waking every frame when 30 people yeet crates.</p>
+        </article>
+        <article class="feature" data-tilt>
+          <h3 data-i18n="features.adapt.title">Adaptive quality</h3>
+          <p data-i18n="features.adapt.body">Shadow distance and pixel lights scale with your FPS target automatically.</p>
+        </article>
+        <article class="feature" data-tilt>
+          <h3 data-i18n="features.host.title">Host cleanup</h3>
+          <p data-i18n="features.host.body">Optional DespawnAll on interval or prop threshold. Memory clean after sweep.</p>
+        </article>
+        <article class="feature" data-tilt>
+          <h3 data-i18n="features.menu.title">BoneMenu + save</h3>
+          <p data-i18n="features.menu.body">Every toggle lives in BoneMenu and persists through MelonPreferences.</p>
+        </article>
+        <article class="feature" data-tilt>
+          <h3 data-i18n="features.open.title">Truly open</h3>
+          <p data-i18n="features.open.body">MIT licensed. Fork it, patch it, ship improvements back to the community.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="presets" class="presets">
+      <header class="section-head">
+        <h2 data-i18n="presets.title">Pick a pressure level</h2>
+        <p data-i18n="presets.sub">Click a preset to preview distances and budgets.</p>
+      </header>
+      <div class="preset-switch" role="tablist">
+        <button type="button" class="preset-btn" data-preset="balanced" data-i18n="presets.balanced">Balanced</button>
+        <button type="button" class="preset-btn" data-preset="performance" data-i18n="presets.performance">Performance</button>
+        <button type="button" class="preset-btn active" data-preset="crowded" data-i18n="presets.crowded">Crowded</button>
+        <button type="button" class="preset-btn" data-preset="extreme" data-i18n="presets.extreme">Extreme</button>
+      </div>
+      <div class="preset-panel" id="presetPanel">
+        <div class="bars">
+          <div>
+            <span data-i18n="presets.near">Near detail</span>
+            <div class="bar"><i id="barNear"></i></div>
+          </div>
+          <div>
+            <span data-i18n="presets.far">Far cull</span>
+            <div class="bar"><i id="barFar"></i></div>
+          </div>
+          <div>
+            <span data-i18n="presets.budget">Prop budget</span>
+            <div class="bar"><i id="barBudget"></i></div>
+          </div>
+        </div>
+        <p class="preset-note" id="presetNote"></p>
+      </div>
+    </section>
+
+    <section id="install" class="install">
+      <header class="section-head">
+        <h2 data-i18n="install.title">Install in minutes</h2>
+        <p data-i18n="install.sub">MelonLoader stack. No wizard required.</p>
+      </header>
+      <ol class="steps">
+        <li data-i18n="install.s1">Install MelonLoader for BONELAB.</li>
+        <li data-i18n="install.s2">Install BoneLib and LabFusion.</li>
+        <li data-i18n="install.s3">Drop FusOpt.dll into BONELAB/Mods (or install via Thunderstore).</li>
+        <li data-i18n="install.s4">Launch → BoneMenu → FusOpt → Crowded preset.</li>
+      </ol>
+    </section>
+
+    <section class="cta-band">
+      <h2 data-i18n="band.title">Ship frames. Keep the lobby.</h2>
+      <p data-i18n="band.sub">FusOpt is free, open source, and built for the servers that break first.</p>
+      <a class="btn primary" href="https://github.com/ZVatnikV/FusOpt" data-i18n="band.cta">Star on GitHub</a>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <span>FusOpt · MIT</span>
+    <a href="https://github.com/ZVatnikV/FusOpt">github.com/ZVatnikV/FusOpt</a>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
