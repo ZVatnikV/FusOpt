@@ -1,6 +1,6 @@
 {
   "name": "FusOpt",
-  "version_number": "1.0.0",
+  "version_number": "1.0.1",
   "website_url": "https://github.com/ZVatnikV/FusOpt",
   "description": "Open-source Fusion lobby optimizer. Cull distant props, sleep rigidbodies, adaptive quality, host cleanup — all in BoneMenu with saved settings.",
   "dependencies": [

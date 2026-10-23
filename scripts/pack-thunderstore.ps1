@@ -2,7 +2,7 @@ $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 $ts = Join-Path $root 'thunderstore'
 $dll = Join-Path $root 'bin\Release\FusOpt.dll'
-$outZip = Join-Path $root 'FusOpt-1.0.0-thunderstore.zip'
+$outZip = Join-Path $root 'FusOpt-1.0.1-thunderstore.zip'
 
 if (-not (Test-Path $dll)) {
     Push-Location $root

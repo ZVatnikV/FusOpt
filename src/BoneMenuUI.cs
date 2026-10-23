@@ -110,7 +110,7 @@ namespace FusOpt
                     Config.HostMemoryClean.Value = v;
                     Config.Save();
                 });
-                host.CreateFunction("Clean Server Now", new Color(1f, 0.3f, 0.3f), () =>
+                host.CreateFunction("Clean Server Now (wipes props)", new Color(1f, 0.3f, 0.3f), () =>
                 {
                     Core.Instance.Host.CleanNow("menu");
                     RefreshStatus();

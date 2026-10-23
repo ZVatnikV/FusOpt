@@ -13,6 +13,7 @@ namespace FusOpt.Systems
     {
         private sealed class TrackedProp
         {
+            public int Id;
             public Rigidbody Body;
             public Renderer[] Renderers;
             public ParticleSystem[] Particles;
@@ -25,6 +26,7 @@ namespace FusOpt.Systems
             public bool StoredKinematic;
         }
 
+        private readonly Dictionary<int, TrackedProp> _byId = new Dictionary<int, TrackedProp>(256);
         private readonly List<TrackedProp> _props = new List<TrackedProp>(256);
         private float _nextScan;
         private float _nextRefresh = -1f;
@@ -37,6 +39,8 @@ namespace FusOpt.Systems
 
         public void OnLevelLoaded()
         {
+            RestoreAll();
+            _byId.Clear();
             _props.Clear();
             _nextRefresh = 0f;
             _nextScan = 0f;
@@ -69,8 +73,6 @@ namespace FusOpt.Systems
 
         private void RefreshCache()
         {
-            _props.Clear();
-
             Rigidbody[] bodies;
             try
             {
@@ -81,52 +83,96 @@ namespace FusOpt.Systems
                 return;
             }
 
+            var seen = new HashSet<int>();
+
             for (int i = 0; i < bodies.Length; i++)
             {
-                var rb = bodies[i];
-                if (rb == null)
-                    continue;
-
-                var go = rb.gameObject;
-                if (go == null || !go.activeInHierarchy)
-                    continue;
-
-                // Skip player rigs / hands / heads — keep interaction intact.
-                string name = go.name ?? string.Empty;
-                if (IsProtectedName(name) || IsUnderPlayerHierarchy(go.transform))
-                    continue;
-
-                var renderers = go.GetComponentsInChildren<Renderer>(true);
-                if (renderers == null || renderers.Length == 0)
-                    continue;
-
-                // Prefer dynamic clutter (spawnable-ish) over huge static scenery.
-                if (rb.isKinematic && rb.mass > 80f)
-                    continue;
-
-                var tracked = new TrackedProp
+                Rigidbody rb = bodies[i];
+                try
                 {
-                    Body = rb,
-                    Renderers = renderers,
-                    Particles = go.GetComponentsInChildren<ParticleSystem>(true),
-                    Culled = false,
-                    ShadowsOff = false,
-                    ParticlesPaused = false,
-                    OriginalShadows = new ShadowCastingMode[renderers.Length],
-                    OriginalRendererEnabled = new bool[renderers.Length]
-                };
-
-                for (int r = 0; r < renderers.Length; r++)
-                {
-                    var ren = renderers[r];
-                    if (ren == null)
+                    if (rb == null)
                         continue;
-                    tracked.OriginalShadows[r] = ren.shadowCastingMode;
-                    tracked.OriginalRendererEnabled[r] = ren.enabled;
-                }
 
-                _props.Add(tracked);
+                    GameObject go = rb.gameObject;
+                    if (go == null || !go.activeInHierarchy)
+                        continue;
+
+                    string name = go.name ?? string.Empty;
+                    if (IsProtectedName(name) || IsUnderPlayerHierarchy(go.transform))
+                        continue;
+
+                    if (rb.isKinematic && rb.mass > 80f)
+                        continue;
+
+                    int id = rb.GetInstanceID();
+                    seen.Add(id);
+
+                    if (_byId.TryGetValue(id, out TrackedProp existing) && existing.Body == rb)
+                    {
+                        existing.Body = rb;
+                        continue;
+                    }
+
+                    Renderer[] renderers = go.GetComponentsInChildren<Renderer>(true);
+                    if (renderers == null || renderers.Length == 0)
+                        continue;
+
+                    var tracked = new TrackedProp
+                    {
+                        Id = id,
+                        Body = rb,
+                        Renderers = renderers,
+                        Particles = go.GetComponentsInChildren<ParticleSystem>(true),
+                        Culled = false,
+                        ShadowsOff = false,
+                        ParticlesPaused = false,
+                        OriginalShadows = new ShadowCastingMode[renderers.Length],
+                        OriginalRendererEnabled = new bool[renderers.Length]
+                    };
+
+                    for (int r = 0; r < renderers.Length; r++)
+                    {
+                        Renderer ren = renderers[r];
+                        if (ren == null)
+                            continue;
+                        tracked.OriginalShadows[r] = ren.shadowCastingMode;
+                        tracked.OriginalRendererEnabled[r] = ren.enabled;
+                    }
+
+                    _byId[id] = tracked;
+                }
+                catch
+                {
+                    // Destroyed Il2Cpp wrappers can throw mid-scan.
+                }
             }
+
+            // Drop props that vanished; restore them first if still valid.
+            var remove = new List<int>();
+            foreach (KeyValuePair<int, TrackedProp> kv in _byId)
+            {
+                if (!seen.Contains(kv.Key))
+                {
+                    try
+                    {
+                        ApplyCull(kv.Value, false);
+                        ApplyShadows(kv.Value, false);
+                        ApplyParticles(kv.Value, false);
+                    }
+                    catch
+                    {
+                    }
+
+                    remove.Add(kv.Key);
+                }
+            }
+
+            for (int i = 0; i < remove.Count; i++)
+                _byId.Remove(remove[i]);
+
+            _props.Clear();
+            foreach (TrackedProp prop in _byId.Values)
+                _props.Add(prop);
 
             _trackedCount = _props.Count;
         }
@@ -137,32 +183,32 @@ namespace FusOpt.Systems
             float far = Mathf.Max(near + 2f, Config.FarDistance.Value);
             int budget = Mathf.Max(10, Config.MaxActiveProps.Value);
 
-            // Sort by distance so nearby props keep budget first.
-            _props.Sort((a, b) =>
-            {
-                float da = DistanceSq(a);
-                float db = DistanceSq(b);
-                return da.CompareTo(db);
-            });
+            _props.Sort((a, b) => DistanceSq(a).CompareTo(DistanceSq(b)));
 
             int kept = 0;
             int culled = 0;
 
             for (int i = 0; i < _props.Count; i++)
             {
-                var prop = _props[i];
+                TrackedProp prop = _props[i];
                 if (prop.Body == null)
                     continue;
 
                 float dist = Mathf.Sqrt(DistanceSq(prop));
-                bool overBudget = kept >= budget;
+                bool inNear = dist <= near;
+                bool overBudget = !inNear && kept >= budget;
                 bool farAway = dist > far;
                 bool mid = dist > near;
 
-                bool shouldCull = Config.PropCull.Value && (farAway || overBudget);
-                bool shouldSleep = Config.RigidbodySleep.Value && (farAway || overBudget || dist > near + ((far - near) * 0.5f));
-                bool shouldShadowOff = Config.ShadowCull.Value && (mid || overBudget);
-                bool shouldPauseParticles = Config.ParticleCull.Value && (mid || overBudget);
+                // Never strip detail inside the near bubble — keeps grabs usable.
+                bool shouldCull = Config.PropCull.Value && !inNear && (farAway || overBudget);
+                bool shouldSleep = Config.RigidbodySleep.Value && !inNear && (farAway || overBudget);
+                bool shouldShadowOff = Config.ShadowCull.Value && !inNear && (mid || overBudget);
+                bool shouldPauseParticles = Config.ParticleCull.Value && !inNear && (mid || overBudget);
+
+                // Don't fight active motion.
+                if (shouldSleep && IsMoving(prop.Body))
+                    shouldSleep = false;
 
                 ApplyCull(prop, shouldCull);
                 ApplySleep(prop, shouldSleep);
@@ -190,6 +236,18 @@ namespace FusOpt.Systems
             }
         }
 
+        private static bool IsMoving(Rigidbody rb)
+        {
+            try
+            {
+                return rb.velocity.sqrMagnitude > 0.05f || rb.angularVelocity.sqrMagnitude > 0.05f;
+            }
+            catch
+            {
+                return true;
+            }
+        }
+
         private static void ApplyCull(TrackedProp prop, bool cull)
         {
             if (prop.Culled == cull)
@@ -197,7 +255,7 @@ namespace FusOpt.Systems
 
             for (int i = 0; i < prop.Renderers.Length; i++)
             {
-                var ren = prop.Renderers[i];
+                Renderer ren = prop.Renderers[i];
                 if (ren == null)
                     continue;
 
@@ -212,7 +270,7 @@ namespace FusOpt.Systems
 
         private static void ApplySleep(TrackedProp prop, bool sleep)
         {
-            var rb = prop.Body;
+            Rigidbody rb = prop.Body;
             if (rb == null)
                 return;
 
@@ -227,17 +285,13 @@ namespace FusOpt.Systems
                     }
 
                     if (!rb.IsSleeping())
-                    {
-                        rb.velocity = Vector3.zero;
-                        rb.angularVelocity = Vector3.zero;
                         rb.Sleep();
-                    }
                 }
                 else if (prop.StoredKinematic)
                 {
-                    // Wake only if something interacts / we restored visibility.
                     if (!prop.WasKinematic)
                         rb.WakeUp();
+                    prop.StoredKinematic = false;
                 }
             }
             catch
@@ -252,7 +306,7 @@ namespace FusOpt.Systems
 
             for (int i = 0; i < prop.Renderers.Length; i++)
             {
-                var ren = prop.Renderers[i];
+                Renderer ren = prop.Renderers[i];
                 if (ren == null)
                     continue;
 
@@ -275,7 +329,7 @@ namespace FusOpt.Systems
 
             for (int i = 0; i < prop.Particles.Length; i++)
             {
-                var ps = prop.Particles[i];
+                ParticleSystem ps = prop.Particles[i];
                 if (ps == null)
                     continue;
 
@@ -298,20 +352,19 @@ namespace FusOpt.Systems
         {
             string n = name.ToLowerInvariant();
             return n.Contains("rigmanager")
-                   || n.Contains("player")
+                   || n.Contains("[rigmanager]")
+                   || n.Contains("playerrep")
                    || n.Contains("controller")
                    || n.Contains("hand")
                    || n.Contains("pelvis")
-                   || n.Contains("head")
                    || n.Contains("avatar")
-                   || n.Contains("spectator")
-                   || n.Contains("ui");
+                   || n.Contains("spectator");
         }
 
         private static bool IsUnderPlayerHierarchy(Transform t)
         {
             int depth = 0;
-            while (t != null && depth < 8)
+            while (t != null && depth < 12)
             {
                 string n = (t.name ?? string.Empty).ToLowerInvariant();
                 if (n.Contains("rigmanager") || n.Contains("[rigmanager]") || n.Contains("playerrep"))
@@ -325,9 +378,19 @@ namespace FusOpt.Systems
 
         public void RestoreAll()
         {
+            foreach (TrackedProp prop in _byId.Values)
+            {
+                if (prop == null)
+                    continue;
+                ApplyCull(prop, false);
+                ApplyShadows(prop, false);
+                ApplyParticles(prop, false);
+                ApplySleep(prop, false);
+            }
+
             for (int i = 0; i < _props.Count; i++)
             {
-                var prop = _props[i];
+                TrackedProp prop = _props[i];
                 if (prop == null)
                     continue;
                 ApplyCull(prop, false);
