@@ -1,42 +1,23 @@
-# FusOpt
+﻿# FusOpt
 
-Open-source **Fusion lobby optimizer** for BONELAB.
+Open-source Fusion lobby optimizer for BONELAB.
 
-Big lobbies (20+ players) + prop spam = uneven FPS. FusOpt fixes *your* machine first, and gives hosts optional auto-clean tools.
+Crowded lobbies (lots of players + props) tank FPS unevenly. FusOpt gives client-side relief and optional host cleanup from BoneMenu, with saved settings.
 
-![FusOpt](https://raw.githubusercontent.com/ZVatnikV/FusOpt/main/docs/assets/hero.jpg)
+## Features
 
-## What it does
-
-| Feature | Effect |
-| --- | --- |
-| Prop Cull | Hides distant clutter renderers locally |
-| Rigidbody Sleep | Sleeps far props to cut physics |
-| Particle / Shadow Cull | Pauses far FX, drops distant shadows |
-| Adaptive Quality | Scales shadows & lights from FPS |
-| Host Clean | `DespawnAll` + interval / threshold |
-| BoneMenu | Full control, settings persist |
-
-## Presets
-
-- **Balanced** — everyday play
-- **Performance** — solid FPS focus
-- **Crowded** — 15–30 player lobbies (default)
-- **Extreme** — survival mode for potato PCs / chaos servers
+- Prop cull, rigidbody sleep, particle/shadow cull
+- Adaptive quality from FPS
+- Host DespawnAll / auto-clean / memory clean
+- Presets: Balanced, Performance, Crowded, Extreme
 
 ## Install
 
-1. MelonLoader + BoneLib + LabFusion
-2. Install this package (or drop `FusOpt.dll` into `Mods`)
-3. BoneMenu → **FusOpt**
+MelonLoader + BoneLib + LabFusion, then install this package.
+
+BoneMenu → FusOpt. Crowded preset is a good start.
 
 ## Links
 
-- Source: https://github.com/ZVatnikV/FusOpt
-- Site: https://zvatnikv.github.io/FusOpt
-- License: MIT
-
-## Notes
-
-- Client culling does **not** despawn networked props for others.
-- Host cleanup requires you to be the Fusion host.
+- https://github.com/ZVatnikV/FusOpt
+- https://zvatnikv.github.io/FusOpt
